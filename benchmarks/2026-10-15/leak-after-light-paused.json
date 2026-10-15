@@ -1,0 +1,390 @@
+{
+    "label":  "leak-after-light-paused",
+    "context":  {
+                    "preset":  "gaara",
+                    "performanceMode":  {
+                                            "mode":  "light"
+                                        },
+                    "visible":  false,
+                    "lyrics":  false,
+                    "playbackLabel":  "Play",
+                    "liveNodes":  3962,
+                    "videos":  [
+
+                               ],
+                    "themeStyleBytes":  305642,
+                    "logs":  17
+                },
+    "endContext":  {
+                       "preset":  "gaara",
+                       "visible":  false,
+                       "playbackLabel":  "Play",
+                       "liveNodes":  3962
+                   },
+    "summary":  {
+                    "label":  "leak-after-light-paused",
+                    "samples":  12,
+                    "seconds":  17.363,
+                    "sameProcesses":  true,
+                    "logicalProcessors":  16,
+                    "privateWorkingSetBytes":  {
+                                                   "mean":  1118219946.6666667,
+                                                   "min":  1117966336,
+                                                   "max":  1118425088
+                                               },
+                    "workingSetBytes":  {
+                                            "mean":  1659842218.6666667,
+                                            "min":  1659588608,
+                                            "max":  1660047360
+                                        },
+                    "privateBytes":  {
+                                         "mean":  1826618368,
+                                         "min":  1826283520,
+                                         "max":  1826869248
+                                     },
+                    "jsHeapUsedBytes":  {
+                                            "mean":  237429329,
+                                            "min":  237152228,
+                                            "max":  237642488
+                                        },
+                    "jsHeapTotalBytes":  {
+                                             "mean":  246587392,
+                                             "min":  246325248,
+                                             "max":  246849536
+                                         },
+                    "nodes":  {
+                                  "mean":  51608,
+                                  "min":  51608,
+                                  "max":  51608
+                              },
+                    "documents":  {
+                                      "mean":  4,
+                                      "min":  4,
+                                      "max":  4
+                                  },
+                    "listeners":  {
+                                      "mean":  18590.416666666668,
+                                      "min":  18588,
+                                      "max":  18593
+                                  },
+                    "cpuPercentMachine":  0.017,
+                    "taskSecondsPerSecond":  0.0020218012548460237804027464,
+                    "scriptSecondsPerSecond":  0.000159417344350200650168204,
+                    "layoutSecondsPerSecond":  0,
+                    "recalcSecondsPerSecond":  0
+                },
+    "rows":  [
+                 {
+                     "seconds":  0.27639569999999997,
+                     "privateWorkingSetBytes":  1118355456,
+                     "workingSetBytes":  1659977728,
+                     "privateBytes":  1826799616,
+                     "cpuSeconds":  1521.359375,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237152228,
+                     "jsHeapTotalBytes":  246325248,
+                     "taskSeconds":  0.001297,
+                     "scriptSeconds":  0,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18588
+                 },
+                 {
+                     "seconds":  1.887502,
+                     "privateWorkingSetBytes":  1117966336,
+                     "workingSetBytes":  1659588608,
+                     "privateBytes":  1826283520,
+                     "cpuSeconds":  1521.359375,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237219624,
+                     "jsHeapTotalBytes":  246325248,
+                     "taskSeconds":  0.003684,
+                     "scriptSeconds":  0.001338,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18588
+                 },
+                 {
+                     "seconds":  3.4646041999999997,
+                     "privateWorkingSetBytes":  1117966336,
+                     "workingSetBytes":  1659588608,
+                     "privateBytes":  1826283520,
+                     "cpuSeconds":  1521.359375,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237221240,
+                     "jsHeapTotalBytes":  246325248,
+                     "taskSeconds":  0.004512,
+                     "scriptSeconds":  0.001338,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18588
+                 },
+                 {
+                     "seconds":  5.0332187,
+                     "privateWorkingSetBytes":  1117966336,
+                     "workingSetBytes":  1659588608,
+                     "privateBytes":  1826283520,
+                     "cpuSeconds":  1521.359375,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237273980,
+                     "jsHeapTotalBytes":  246325248,
+                     "taskSeconds":  0.005847,
+                     "scriptSeconds":  0.00173,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18588
+                 },
+                 {
+                     "seconds":  6.6274188999999994,
+                     "privateWorkingSetBytes":  1118081024,
+                     "workingSetBytes":  1659703296,
+                     "privateBytes":  1826586624,
+                     "cpuSeconds":  1521.375,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237325956,
+                     "jsHeapTotalBytes":  246587392,
+                     "taskSeconds":  0.006453,
+                     "scriptSeconds":  0.002071,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18588
+                 },
+                 {
+                     "seconds":  8.2258331,
+                     "privateWorkingSetBytes":  1118244864,
+                     "workingSetBytes":  1659867136,
+                     "privateBytes":  1826623488,
+                     "cpuSeconds":  1521.40625,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237462640,
+                     "jsHeapTotalBytes":  246587392,
+                     "taskSeconds":  0.027046,
+                     "scriptSeconds":  0.002092,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18591
+                 },
+                 {
+                     "seconds":  9.7963335,
+                     "privateWorkingSetBytes":  1118179328,
+                     "workingSetBytes":  1659801600,
+                     "privateBytes":  1826541568,
+                     "cpuSeconds":  1521.40625,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237466412,
+                     "jsHeapTotalBytes":  246587392,
+                     "taskSeconds":  0.028259,
+                     "scriptSeconds":  0.002233,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18591
+                 },
+                 {
+                     "seconds":  11.3611509,
+                     "privateWorkingSetBytes":  1118179328,
+                     "workingSetBytes":  1659801600,
+                     "privateBytes":  1826541568,
+                     "cpuSeconds":  1521.40625,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237468140,
+                     "jsHeapTotalBytes":  246587392,
+                     "taskSeconds":  0.029073,
+                     "scriptSeconds":  0.002233,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18591
+                 },
+                 {
+                     "seconds":  12.931196499999999,
+                     "privateWorkingSetBytes":  1118425088,
+                     "workingSetBytes":  1660047360,
+                     "privateBytes":  1826869248,
+                     "cpuSeconds":  1521.40625,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237639188,
+                     "jsHeapTotalBytes":  246849536,
+                     "taskSeconds":  0.034617,
+                     "scriptSeconds":  0.002768,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18593
+                 },
+                 {
+                     "seconds":  14.507698,
+                     "privateWorkingSetBytes":  1118425088,
+                     "workingSetBytes":  1660047360,
+                     "privateBytes":  1826869248,
+                     "cpuSeconds":  1521.40625,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237639188,
+                     "jsHeapTotalBytes":  246849536,
+                     "taskSeconds":  0.034767,
+                     "scriptSeconds":  0.002768,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18593
+                 },
+                 {
+                     "seconds":  16.069983699999998,
+                     "privateWorkingSetBytes":  1118425088,
+                     "workingSetBytes":  1660047360,
+                     "privateBytes":  1826869248,
+                     "cpuSeconds":  1521.40625,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237640864,
+                     "jsHeapTotalBytes":  246849536,
+                     "taskSeconds":  0.035563,
+                     "scriptSeconds":  0.002768,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18593
+                 },
+                 {
+                     "seconds":  17.6396256,
+                     "privateWorkingSetBytes":  1118425088,
+                     "workingSetBytes":  1660047360,
+                     "privateBytes":  1826869248,
+                     "cpuSeconds":  1521.40625,
+                     "processIds":  [
+                                        23020,
+                                        24336,
+                                        24644,
+                                        25444,
+                                        26532,
+                                        27008,
+                                        27080,
+                                        27640
+                                    ],
+                     "jsHeapUsedBytes":  237642488,
+                     "jsHeapTotalBytes":  246849536,
+                     "taskSeconds":  0.036402,
+                     "scriptSeconds":  0.002768,
+                     "layoutSeconds":  0,
+                     "recalcSeconds":  0,
+                     "nodes":  51608,
+                     "documents":  4,
+                     "listeners":  18593
+                 }
+             ]
+}

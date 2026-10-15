@@ -1,4 +1,4 @@
-/* @izify-plugin {"id":"ad-block","name":"Izify Adblock","description":"Filtro de anúncios da página, slots, player e diagnóstico do Spotify Desktop.","author":"Izify","version":"2.2.0"} */
+/* @izify-plugin {"id":"ad-block","name":"Izify Adblock","description":"Filtro de anúncios da página, slots, player e diagnóstico do Spotify Desktop.","author":"Izify","version":"2.3.1"} */
 izify.registerPlugin({ id: "ad-block", start(api) {
   'use strict';
   if (window.__izifyAds && typeof window.__izifyAds.destroy === 'function') {
@@ -42,7 +42,7 @@ izify.registerPlugin({ id: "ad-block", start(api) {
     transport: false, transportSource: '', slotTransport: '', managerKeys: [], tries: 0, calls: {},
     hook: null, players: new Set(), patches: [], managers: new Set(),
     stateOk: 0, skips: 0, slotCalls: { ok: 0, fail: 0 }, errors: [], armed: 0,
-    once: {}, errSeen: {}, slotSig: '', mgrSig: '',
+    once: {}, errSeen: {}, slotSig: '', mgrSig: '', releasedProbes:0,
   };
 
   let dead = false, armBusy = false, armTimer = null;
@@ -80,8 +80,20 @@ izify.registerPlugin({ id: "ad-block", start(api) {
     const key = Object.keys(window).find((k) => /^(rspack|webpack)Chunk/.test(k));
     const chunk = key && window[key];
     if (!chunk || typeof chunk.push !== 'function') return null;
+    // Old Izify probes stayed in the global chunk array, retaining their plugin/UI
+    // closure across hot reloads. Match only our exact legacy callback, never native chunks.
+    if(Array.isArray(chunk))for(let i=chunk.length-1;i>=0;i--){
+      const entry=chunk[i];
+      if(Array.isArray(entry?.[0])&&entry[0].length===1&&typeof entry[0][0]==='symbol'&&entry[1]&&Object.keys(entry[1]).length===0&&typeof entry[2]==='function'&&String(entry[2]).replace(/\s/g,'')==='(r)=>{req=r;returnr;}'){
+        chunk.splice(i,1);S.releasedProbes++;
+      }
+    }
     let req = null;
-    const ret = chunk.push([[Symbol()], {}, (r) => { req = r; return r; }]);
+    const probe=[[Symbol()],{},(r)=>{req=r;return r;}];
+    let ret;
+    try{ret=chunk.push(probe);}finally{
+      if(Array.isArray(chunk)){const index=chunk.indexOf(probe);if(index>=0)chunk.splice(index,1);}
+    }
     req = req || ret;
     return typeof req === 'function' && req.m ? req : null;
   }
@@ -531,10 +543,16 @@ izify.registerPlugin({ id: "ad-block", start(api) {
     '[data-testid="leaderboard-ad"]', '[data-testid="ad-banner"]', '[data-testid="ads-banner"]',
     '[data-testid="sponsored-banner"]', '[data-testid*="hpto"]', '[data-ad-slot]',
     'div[data-testid="embedded-ad-carousel"]',
+    '.main-topBar-UpgradeButton', '[data-testid="upgrade-button"]',
+    '.main-topBar-container a[href*="/premium"]', '[role="menu"] a[href*="/premium"]',
+    '[role="menuitem"]:has(a[href*="/premium"])', '[role="menu"] li:has(a[href*="/premium"])',
+    '[role="menu"] li:has(> button[data-testid*="upgrade"])',
   ];
+  const COVER = 'img[data-testid="cover-art-image"], .cover-art-image, .main-nowPlayingWidget-coverArt, [data-testid="now-playing-widget"] img';
   const style = document.createElement('style');
   style.id = 'izify-ads-css';
-  const applyHide = () => { style.textContent = HIDE.join(',\n') + '\n{ display:none !important; }\n'; };
+  // Guard the image and its ancestors, including covers inserted after this CSS.
+  const applyHide = () => { style.textContent = HIDE.map(sel => `:is(${sel}):not(${COVER}):not(:has(${COVER}))`).join(',\n') + '\n{ display:none !important; }\n'; };
   applyHide();
   (document.head || document.documentElement).appendChild(style);
 
@@ -542,6 +560,10 @@ izify.registerPlugin({ id: "ad-block", start(api) {
     sel = String(sel || '').trim();
     if (!sel) return false;
     try { document.querySelector(sel); } catch (e) { emit('err', 'Seletor inválido: ' + sel); return false; }
+    const sample = document.createElement('img'); sample.dataset.testid = 'cover-art-image'; sample.className = 'cover-art-image';
+    if (sample.matches(sel) || [...document.querySelectorAll(sel)].some(n => n.matches(COVER) || n.querySelector(COVER))) {
+      emit('warn', 'Seletor ignorado para preservar as capas: ' + sel); return false;
+    }
     if (!HIDE.includes(sel)) { HIDE.push(sel); applyHide(); }
     emit('ok', 'Escondendo: ' + sel + ' (' + document.querySelectorAll(sel).length + ' elemento(s) agora)');
     return true;
@@ -549,16 +571,26 @@ izify.registerPlugin({ id: "ad-block", start(api) {
   function unhide(sel) {
     const i = HIDE.indexOf(sel);
     if (i < 0) return false;
+    if (/premium|upgrade/i.test(sel)) return false;
     HIDE.splice(i, 1); applyHide();
     emit('info', 'Deixou de esconder: ' + sel);
     return true;
   }
 
   const hiddenDialogs = new Map();
-  const CLOSE_SEL = 'button[aria-label="Close" i], button[aria-label*="Fechar" i], button[aria-label*="Cerrar" i], button[aria-label*="Schließen" i], button[data-testid*="close" i]';
 
+  const PREMIUM_SEL = '[role="menuitem"], [role="menu"] li, [role="menu"] a, .main-topBar-container a, .main-topBar-container button, .main-topBar-UpgradeButton, [data-testid="upgrade-button"]';
+  function hidePremium(node) {
+    if (node.matches(COVER) || node.querySelector(COVER)) return;
+    const text = node.textContent || '';
+    if (text.length > 60 || (!/premium/i.test(text) && !/\/premium/i.test(node.getAttribute('href') || '') && !node.matches('.main-topBar-UpgradeButton, [data-testid="upgrade-button"]'))) return;
+    if (!hiddenDialogs.has(node)) hiddenDialogs.set(node, [node.style.getPropertyValue('display'), node.style.getPropertyPriority('display')]);
+    node.style.setProperty('display', 'none', 'important');
+  }
   function killUpsell(node) {
     if (!node || node.nodeType !== 1) return;
+    if (node.matches(PREMIUM_SEL)) hidePremium(node);
+    node.querySelectorAll(PREMIUM_SEL).forEach(hidePremium);
     const dialogs = [];
     if (node.matches && node.matches('[role="dialog"], [role="alertdialog"]')) dialogs.push(node);
     if (node.querySelectorAll) node.querySelectorAll('[role="dialog"], [role="alertdialog"]').forEach((d) => dialogs.push(d));
@@ -566,23 +598,26 @@ izify.registerPlugin({ id: "ad-block", start(api) {
       const txt = d.textContent || '';
       if (txt.length > 500 || !/premium/i.test(txt)) return;
       if (!d.querySelector('a[href*="premium"]') && !/upgrade|assin|subscri|obter|get premium/i.test(txt)) return;
-      const c = d.querySelector(CLOSE_SEL);
+      if (d.querySelector(COVER)) return;
       // Apenas ocultação visual: nenhum clique automático.
       if (!hiddenDialogs.has(d)) hiddenDialogs.set(d, [d.style.getPropertyValue('display'), d.style.getPropertyPriority('display')]);
       d.style.setProperty('display', 'none', 'important');
-      log('pop-up de Premium fechado');
+      log('pop-up de Premium ocultado');
     });
   }
 
   const obs = new MutationObserver((muts) => {
     for (const m of muts) for (const n of m.addedNodes) killUpsell(n);
+    for (const node of hiddenDialogs.keys()) if (!node.isConnected) hiddenDialogs.delete(node);
   });
   obs.observe(document.documentElement, { childList: true, subtree: true });
+  killUpsell(document.body);
 
   const status = () => ({
     modulos: !!S.req,
     player: !!(S.nativePlayer || S.hook),
     playerNativo: !!S.nativePlayer,
+    sondasAntigasLiberadas:S.releasedProbes,
     anuncioAtual: nativeAd(),
     pausado: nativeState()?.isPaused ?? null,
     instancias: S.nativePlayer ? 1 : S.players.size,

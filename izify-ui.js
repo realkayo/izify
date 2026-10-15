@@ -9,42 +9,32 @@
   'use strict';
   const M = window.__izifyModules, assets = window.__izifyAssets;
   if (!M?.createPlugins || !assets?.css) throw new Error("Execute run.ps1 para carregar o pacote Izify.");
+  if (!M.themePresets || !M.createPersonalization) throw new Error('Reinicie o runner ou atualize a instalação para carregar os novos temas do Izify.');
   const logs = M.createLogs(), log = logs.scoped("izify"), storage = M.createStorage(log);
-  let extras;
+  let extras, themeEngine;
+  const performanceControl=M.createPerformance({storage,onChange:()=>{applyTheme();const input=panel?.querySelector('#performanceMode');if(input)input.value=performanceControl.api.getState().mode;}});
   const plugins = M.createPlugins({ logs, storage, getIzify: () => window.izify, changed: () => extras?.renderPlugins() });
 
   /* ----------------------------- CONFIG ---------------------------------- */
   const CFG = {
     discord: 'https://discord.gg/SEU-CONVITE', // <-- troque pelo seu convite
-    version: '2.2.0',
+    version: '2.4.0',
     storageKey: 'izify:config:v2',
     welcomeKey: 'izify:welcome-dismissed',
     loadTimeout: 30000, // tempo máx. esperando o Spotify carregar
     settleDelay: 300,  // espera extra depois de carregado
   };
 
-  const PRESETS = {
-    spotify: { name: 'Spotify', accent: '#1ed760', bg: '#000000', panel: '#121212', card: '#1f1f1f', text: '#ffffff', subtext: '#b3b3b3' },
-    izify:   { name: 'Izify',   accent: '#a78bfa', bg: '#0b0714', panel: '#140d24', card: '#1d1333', text: '#f5f3ff', subtext: '#a89bc9' },
-    oceano:  { name: 'Oceano',  accent: '#38bdf8', bg: '#020b14', panel: '#08182a', card: '#0e2540', text: '#e8f4ff', subtext: '#8fb0cc' },
-    sunset:  { name: 'Sunset',  accent: '#fb923c', bg: '#14070a', panel: '#200d12', card: '#2e1219', text: '#fff1ea', subtext: '#d1a08e' },
-    rosa:    { name: 'Rosa',    accent: '#f472b6', bg: '#12060d', panel: '#1d0b15', card: '#2b1121', text: '#ffeef7', subtext: '#cf9bb6' },
-    amoled:  { name: 'AMOLED',  accent: '#1ed760', bg: '#000000', panel: '#000000', card: '#0d0d0d', text: '#ffffff', subtext: '#9a9a9a' },
-    claro:   { name: 'Claro',   accent: '#1db954', bg: '#e4e4e4', panel: '#ffffff', card: '#f2f2f2', text: '#121212', subtext: '#5e5e5e' },
-  };
-  const colorsOf = (k) => { const { name, ...c } = PRESETS[k]; return c; };
+  const PRESETS = M.themePresets;
+  const colorsOf = k => JSON.parse(JSON.stringify(PRESETS[k].colors));
 
   const DEFAULTS = {
     preset: 'spotify',
     colors: colorsOf('spotify'),
-    areas: { sidebar: '', topbar: '', player: '', progress: '' }, // '' = automático
-    bg: {
-      image: '', blur: 0, dim: 35, brightness: 100, saturate: 100,
-      fit: 'cover', position: 'center', panelOpacity: 100, glass: 0,
-      gradient: false, g1: '#1ed760', g2: '#121212', gAngle: 160,
-    },
-    style: { radius: 8, cardRadius: 8, gap: 8, font: '', letterSpacing: 0, noAnim: false },
-    hide: { premium: true, history: false, scrollbars: false, selectors: '' },
+    areas: { ...M.themeDefaults.areas },
+    bg: { ...M.themeDefaults.bg },
+    style: { ...M.themeDefaults.style },
+    decor: { ...M.themeDefaults.decor },
     css: '',
     js: { code: '', autorun: false },
   };
@@ -65,14 +55,11 @@
   const isHex = (v) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v);
   const normHex = (v) => (v.length === 4 ? '#' + [...v.slice(1)].map((c) => c + c).join('') : v).toLowerCase();
   const hex2rgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-  const rgb2hex = (r, g, b) => '#' + [r, g, b].map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
-  const mix = (a, b, t) => { const A = hex2rgb(a), B = hex2rgb(b); return rgb2hex(...A.map((v, i) => v + (B[i] - v) * t)); };
-  const rgba = (h, a) => { const [r, g, b] = hex2rgb(h); return `rgba(${r},${g},${b},${a})`; };
   const lum = (h) => {
     const [r, g, b] = hex2rgb(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   };
-  const onColor = (h) => (lum(h) > 0.45 ? '#000000' : '#ffffff');
+  const onColor = (h) => (lum(h) > 0.179 ? '#121212' : '#ffffff');
 
   function waitFor(cond, timeout, step = 250) {
     return new Promise((res) => {
@@ -91,17 +78,35 @@
   let state;
   try { state = merge(clone(DEFAULTS), JSON.parse(localStorage.getItem(CFG.storageKey) || localStorage.getItem('izify:config:v1')) || {}); }
   catch (e) { state = clone(DEFAULTS); }
+  function migratePreferences() {
+    M.normalizeTheme(state);
+    if (typeof state.css !== 'string') state.css = '';
+    if (!state.js || typeof state.js !== 'object' || Array.isArray(state.js)) state.js = { code:'',autorun:false };
+    if (typeof state.js.code !== 'string') state.js.code = '';
+    state.js.autorun = state.js.autorun === true;
+    // Retired controls must not keep hiding artwork or changing Spotify geometry.
+    delete state.hide;
+    for (const key of ['radius', 'cardRadius', 'gap']) delete state.style[key];
+  }
+  migratePreferences();
 
   const get = (p) => p.split('.').reduce((o, k) => (o ? o[k] : undefined), state);
-  const set = (p, v) => { const ks = p.split('.'); const last = ks.pop(); ks.reduce((o, k) => o[k], state)[last] = v; };
+  const set = (p, v) => {
+    if(state.preset==='spotify' && /^(?:colors|areas|bg|style|decor)(?:\.|$)|^css$/.test(p))state.preset='custom';
+    if(p==='colors.accent')for(const key of ['button','selection'])if(state.colors[key]===state.colors.accent)state.colors[key]=v;
+    const ks=p.split('.'),last=ks.pop();ks.reduce((o,k)=>o[k],state)[last]=v;
+    if(p==='decor.gaaraAtmosphere')M.applyGaaraAtmosphere?.(state,v);
+    else if(p.startsWith('colors.')&&M.themeCharacter(state)==='gaara')state.decor.gaaraAtmosphere='custom';
+  };
 
   let saveTimer;
   function save() {
     try { localStorage.setItem(CFG.storageKey, JSON.stringify(state)); }
     catch (e) { toast('Não deu pra salvar (imagem muito grande?)'); }
   }
-  let themeFrame;
-  function commit() { if (!themeFrame) themeFrame = requestAnimationFrame(() => { themeFrame = null; if (!dead) { applyTheme(); applyHides(); } }); clearTimeout(saveTimer); saveTimer = setTimeout(save, 250); extras?.syncFont(); }
+  let themeFrame, themeTimer;
+  function flushTheme(){cancelAnimationFrame(themeFrame);themeFrame=null;clearTimeout(themeTimer);themeTimer=null;if(!dead)applyTheme();}
+  function commit() { migratePreferences(); if (!themeFrame&&!themeTimer) {themeFrame=requestAnimationFrame(flushTheme);themeTimer=setTimeout(flushTheme,80);} clearTimeout(saveTimer); saveTimer = setTimeout(save, 250); extras?.syncFont(); }
 
   /* ------------------------------ THEME ---------------------------------- */
   function styleTag(id) {
@@ -110,123 +115,24 @@
     return s;
   }
 
-  function validSel(x) {
-    try { document.createDocumentFragment().querySelector(x); return true; } catch (e) { return false; }
-  }
-
-  function buildCSS(s) {
-    const c = s.colors, a = s.areas, b = s.bg, st = s.style, h = s.hide;
-    const hasImg = !!b.image;
-    const hasGrad = !!b.gradient && !hasImg;
-    const hasBg = hasImg || hasGrad;
-    const op = hasBg ? b.panelOpacity / 100 : 1;
-    const wo = (col) => (op < 1 ? rgba(col, op) : col);
-    const font = (st.font || '').replace(/["\\;{}]/g, '').trim();
-
-    const vars = {
-      '--background-base': wo(c.panel),
-      '--background-highlight': wo(mix(c.panel, c.text, 0.08)),
-      '--background-press': wo(mix(c.panel, c.bg, 0.5)),
-      '--background-elevated-base': c.card,
-      '--background-elevated-highlight': mix(c.card, c.text, 0.08),
-      '--background-elevated-press': mix(c.card, c.bg, 0.5),
-      '--background-tinted-base': rgba(c.text, 0.1),
-      '--background-tinted-highlight': rgba(c.text, 0.14),
-      '--background-tinted-press': rgba(c.text, 0.07),
-      '--text-base': c.text,
-      '--text-subdued': c.subtext,
-      '--text-bright-accent': c.accent,
-      '--essential-base': c.text,
-      '--essential-subdued': mix(c.subtext, c.panel, 0.45),
-      '--essential-bright-accent': c.accent,
-      '--decorative-base': c.text,
-      '--decorative-subdued': mix(c.subtext, c.panel, 0.45),
-    };
-    const decl = Object.entries(vars).map(([k, v]) => `${k}:${v} !important;`).join('');
-
-    // fundo (imagem ou gradiente)
-    const img = (b.image || '').replace(/"/g, '%22');
-    const dim = b.dim / 100;
-    const dimLayer = `linear-gradient(rgba(0,0,0,${dim}),rgba(0,0,0,${dim}))`;
-    const size = b.fit === 'tile' ? 'auto' : b.fit;
-    const repeat = b.fit === 'tile' ? 'repeat' : 'no-repeat';
-    const layers = hasImg ? `${dimLayer}, url("${img}")` : `${dimLayer}, linear-gradient(${b.gAngle}deg, ${b.g1}, ${b.g2})`;
-    const sizing = hasImg ? `background-size:auto, ${size}; background-position:center, ${b.position}; background-repeat:no-repeat, ${repeat};` : '';
-    const filt = `blur(${b.blur}px) brightness(${b.brightness}%) saturate(${b.saturate}%)`;
-
-    // áreas com cor própria
-    const area = (sel, col) => (col ? `${sel}{--background-base:${wo(col)} !important;background-color:${wo(col)} !important;}` : '');
-    const progress = a.progress
-      ? `.playback-progressbar, .progress-bar, [data-testid="progress-bar"]{--fg-color:${a.progress} !important;--progress-bar-active-color:${a.progress} !important;}
-         .x-progressBar-fillColor{background-color:${a.progress} !important;}`
-      : '';
-
-    // esconder
-    const hideList = (h.selectors || '').split('\n').map((x) => x.trim()).filter((x) => x && !/[{}]/.test(x) && validSel(x));
-
-    return `
-:root, body, .encore-dark-theme, .encore-light-theme,
-.encore-dark-theme .encore-base-set, .encore-dark-theme.encore-base-set { ${decl} }
-
-/* botões / elementos "accent set" do Spotify */
-.encore-bright-accent-set, .encore-dark-theme .encore-bright-accent-set, .encore-dark-theme.encore-bright-accent-set {
-  --background-base:${c.accent} !important;
-  --background-highlight:${mix(c.accent, '#ffffff', 0.12)} !important;
-  --background-press:${mix(c.accent, '#000000', 0.25)} !important;
-  --text-base:${onColor(c.accent)} !important;
-}
-
-html, body { background-color:${c.bg} !important; }
-${hasBg ? '.Root, .Root__top-container, #main { background:transparent !important; }' : ''}
-body::before {
-  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-  ${hasBg ? `background-image:${layers}; ${sizing} filter:${filt}; ${b.blur > 0 ? 'transform:scale(1.06);' : ''}` : 'display:none;'}
-}
-${b.glass > 0 ? `.Root__main-view, .Root__nav-bar, .Root__right-sidebar, .Root__now-playing-bar { -webkit-backdrop-filter:blur(${b.glass}px) !important; backdrop-filter:blur(${b.glass}px) !important; }` : ''}
-
-/* áreas */
-${area('.Root__nav-bar', a.sidebar)}
-${area('.Root__now-playing-bar', a.player)}
-${a.topbar ? `.main-topBar-background{background-color:${wo(a.topbar)} !important;}` : ''}
-${progress}
-
-/* formato */
-.Root__main-view, .Root__nav-bar, .Root__right-sidebar, .main-view-container { border-radius:${st.radius}px !important; }
-.main-card-card, .main-card-imageContainer, .main-cardImage-imageWrapper { border-radius:${st.cardRadius}px !important; }
-${st.gap !== 8 ? `.Root__top-container { gap:${st.gap}px !important; }` : ''}
-${font ? `body, button, input, .encore-text, [class*="encore-text"] { font-family:"${font}", var(--encore-body-font-stack, sans-serif) !important; }` : ''}
-${st.letterSpacing ? `body { letter-spacing:${st.letterSpacing}px; }` : ''}
-${st.noAnim ? '*, *::before, *::after { transition:none !important; animation:none !important; }' : ''}
-
-/* esconder */
-${h.premium ? `.main-topBar-UpgradeButton, [data-testid="upgrade-button"], .main-topBar-container a[href*="/premium"],
-[role="menu"] a[href*="/premium"], [role="menuitem"]:has(a[href*="/premium"]), [role="menu"] li:has(a[href*="/premium"]),
-[role="menu"] li:has(> button[data-testid*="upgrade"]) { display:none !important; visibility:hidden !important; }` : ''}
-${h.history ? '.main-topBar-historyButtons { display:none !important; }' : ''}
-${h.scrollbars ? '::-webkit-scrollbar, .os-scrollbar, .os-scrollbar-vertical, .os-scrollbar-horizontal { display:none !important; width:0 !important; }' : ''}
-${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
-`;
-  }
-
   function applyTheme() {
-    styleTag('izify-theme').textContent = buildCSS(state);
-    styleTag('izify-custom').textContent = state.css || '';
-    const a = state.colors.accent;
-    document.documentElement.style.setProperty('--izify-accent', a);
+    themeEngine ||= M.createPersonalization({getState:()=>state,selectPreset:applyPreset,setPreference:(path,value)=>window.izify.set(path,value),reset:()=>window.izify.reset(),getButton:()=>btn,defaultIcon:()=>svg(I.palette),onError:error=>log.warn(error)});
+    themeEngine.apply(state);
     if (host) {
-      host.style.setProperty('--iz-accent', a);
-      host.style.setProperty('--iz-on-accent', onColor(a));
+      if(state.preset==='spotify'){host.style.removeProperty('--iz-accent');host.style.removeProperty('--iz-on-accent');}
+      else{host.style.setProperty('--iz-accent',state.colors.accent);host.style.setProperty('--iz-on-accent',onColor(state.colors.accent));}
     }
   }
 
   /* --------------------------- CSS DA UI (light DOM) --------------------- */
   styleTag('izify-ui').textContent = `
 #izify-btn{-webkit-app-region:no-drag;flex:none;width:32px;height:32px;padding:0;margin:0 8px 0 4px;border:0;border-radius:50%;
-  background:rgba(0,0,0,.7);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+  background:var(--izify-control-bg,#ffffff14)!important;color:var(--izify-control-text,#b3b3b3)!important;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
   transition:transform .12s ease,background .15s ease}
-#izify-btn:hover{transform:scale(1.07);background:#1f1f1f}
-#izify-btn svg{width:18px;height:18px;fill:currentColor}
-#izify-btn[data-open="true"]{background:var(--izify-accent,#1ed760);color:#000}
+#izify-btn:hover{transform:scale(1.07);background:var(--izify-control-hover,#ffffff26)!important;color:var(--izify-control-active,#fff)!important}
+#izify-btn svg{width:18px;height:18px;fill:currentColor!important;color:inherit!important}
+#izify-btn img{width:25px;height:25px;object-fit:contain;pointer-events:none}
+#izify-btn[data-open="true"]{background:var(--izify-control-accent,#1ed760)!important;color:var(--izify-control-ink,#121212)!important}
 #izify-btn.iz-floating{position:fixed;top:12px;right:190px;z-index:2147483646}
 `;
 
@@ -244,7 +150,7 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
 
   /* ------------------------------ HOST (shadow) -------------------------- */
   let host, shadow, layer, panel, btn, panelOpen = false;
-  let observer = null, onDown = null, onEsc = null, welcomeKey = null, dead = false, stopPick = null;
+  let observer = null, onDown = null, onEsc = null, welcomeKey = null, dead = false;
 
   function ensureHost() {
     if (host && host.isConnected) return;
@@ -335,7 +241,7 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     ensureHost();
     const presetsHtml = Object.entries(PRESETS).map(([k, p]) => `
 <button class="preset" data-preset="${k}">
-  <span class="sw"><i style="background:${p.bg}"></i><i style="background:${p.panel}"></i><i style="background:${p.accent}"></i></span>${p.name}
+  <span class="sw"><i style="background:${p.colors.bg}"></i><i style="background:${p.colors.panel}"></i><i style="background:${p.colors.accent}"></i></span><strong class="preset-name">${p.name}${M.themeCharacters[k]?`<img class="preset-icon" src="${M.characterAsset(k,'icon')||M.characterAsset(k,'head')}" alt="" aria-hidden="true">`:''}</strong><small>${p.description}</small>
 </button>`).join('');
 
     panel = el(`
@@ -345,15 +251,17 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     <button class="tab on" data-t="cores">Cores</button>
     <button class="tab" data-t="fundo">Fundo</button>
     <button class="tab" data-t="estilo">Estilo</button>
-    <button class="tab" data-t="esconder">Esconder</button>
     <button class="tab" data-t="plugins">Plugins</button>
-    <button class="tab" data-t="dev">Dev</button>
+    <button class="tab" data-t="dev" hidden>Dev</button>
     <button class="tab" data-t="avancado">Avançado</button>
   </div>
   <div class="body">
     <section data-tab="cores" class="on">
       <div class="h">Temas</div>
+      <div class="theme-preview" id="themePreview" aria-label="Prévia das cores do tema"><div class="preview-cover" aria-hidden="true">♫</div><div class="preview-track"><strong>Seu Spotify, do seu jeito</strong><span id="themeCaption">Spotify</span><div class="preview-progress"><i></i></div></div><span class="preview-play" aria-hidden="true">▶</span></div>
       <div class="presets">${presetsHtml}</div>
+      <p class="hint">Cada tema aplica cores, fundo e formato. Você pode ajustar tudo abaixo e salvar um perfil.</p>
+      <div class="acts"><button class="btn ghost sm" id="themeImport">Importar color.ini</button><input id="themeFile" type="file" accept=".ini" hidden><select id="themeScheme" aria-label="Paleta importada" hidden></select></div>
       <div class="h">Cores</div>
       ${colorRow('colors.accent', 'Destaque')}
       ${colorRow('colors.bg', 'Fundo (atrás dos painéis)')}
@@ -361,12 +269,27 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
       ${colorRow('colors.card', 'Cartões e menus')}
       ${colorRow('colors.text', 'Texto')}
       ${colorRow('colors.subtext', 'Texto secundário')}
-      <div class="h">Áreas (opcional)</div>
+      <details class="theme-details"><summary>Mais cores</summary>
+      ${colorRow('colors.button', 'Botões de destaque')}
+      ${colorRow('colors.border', 'Bordas')}
+      ${colorRow('colors.hover', 'Ao passar o mouse')}
+      ${colorRow('colors.selection', 'Seleção')}
+      ${colorRow('colors.tooltip', 'Dicas flutuantes')}
+      ${colorRow('colors.scrollbar', 'Barra de rolagem')}
+      ${colorRow('colors.shadow', 'Sombras')}
+      </details>
+      <details class="theme-details"><summary>Cores por área</summary>
       <div class="hint">Cor própria por área. O × volta ao automático.</div>
       ${areaRow('areas.sidebar', 'Barra lateral')}
       ${areaRow('areas.topbar', 'Barra superior')}
+      ${areaRow('areas.main', 'Conteúdo principal')}
+      ${areaRow('areas.rightbar', 'Painel da direita')}
       ${areaRow('areas.player', 'Barra do player')}
       ${areaRow('areas.progress', 'Barra de progresso')}
+      ${areaRow('areas.volume', 'Barra de volume')}
+      ${areaRow('areas.menus', 'Menus')}
+      ${areaRow('areas.search', 'Busca')}
+      </details>
       <div class="h">Meus perfis</div>
       <div class="acts"><input class="txt" id="profName" placeholder="Nome do perfil" maxlength="32" spellcheck="false"><button class="btn primary sm" id="profSave">Salvar</button></div>
       <div id="profList"></div>
@@ -397,36 +320,50 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
       ${colorRow('bg.g1', 'Cor inicial')}
       ${colorRow('bg.g2', 'Cor final')}
       ${rangeRow('bg.gAngle', 'Ângulo', 0, 360, '°')}
+      <div class="h">Detalhes do fundo</div>
+      ${selRow('bg.pattern', 'Estampa', [['none','Nenhuma'],['kuromi','Kuromi · caveiras e estrelas'],['stars','Estrelas'],['dots','Pontos']])}
+      ${rangeRow('bg.patternOpacity', 'Intensidade', 0, 60, '%')}
+      ${selRow('decor.wallpaper','Fundo especial',[['none','Nenhum'],['kuromi','Kuromi · preto'],['gaara','Gaara · pôr do sol']])}
     </section>
 
     <section data-tab="estilo">
-      <div class="h">Formato</div>
-      ${rangeRow('style.radius', 'Arredondar painéis', 0, 32, 'px')}
-      ${rangeRow('style.cardRadius', 'Arredondar cartões', 0, 32, 'px')}
-      ${rangeRow('style.gap', 'Espaço entre painéis', 0, 24, 'px')}
       <div class="h">Texto</div>
       ${M.panelSections.fonts}
       ${rangeRow('style.letterSpacing', 'Espaçamento das letras', -1, 4, 'px', 0.1)}
+      ${rangeRow('style.fontScale', 'Tamanho do texto', 85, 125, '%')}
+      <div class="h">Formato e espaço</div>
+      ${rangeRow('style.surfaceRadius', 'Cantos dos painéis', 0, 28, 'px')}
+      ${rangeRow('style.cardRound', 'Cantos dos cartões', 0, 28, 'px')}
+      ${rangeRow('style.coverRound', 'Cantos das capas', 0, 32, 'px')}
+      ${rangeRow('style.buttonRound', 'Cantos dos botões', 0, 32, 'px')}
+      ${rangeRow('style.gapSize', 'Espaço entre painéis', 0, 20, 'px')}
+      ${rangeRow('style.rowHeight', 'Altura das faixas', 40, 80, 'px')}
+      ${rangeRow('style.progressHeight', 'Espessura das barras', 2, 10, 'px')}
+      <div class="h">Tema especial</div>
+      ${selRow('decor.icon','Ícone do Izify',[['none','Paleta'],['kuromi','Cabeça da Kuromi'],['gaara','Gaara · selo 愛']])}
+      ${selRow('decor.progressHandle','Marcador do progresso',[['none','Original'],['kuromi','Cabeça da Kuromi'],['gaara','Gaara · selo 愛']])}
+      <div id="gaaraFeatures" class="gaara-options" hidden>
+      <div class="h">Gaara · Arte da Areia</div>
+      <p class="hint">Selo 愛, dunas e as noites de Sunagakure. O pequeno Kazekage acompanha sua música.</p>
+      ${selRow('decor.gaaraAtmosphere','Atmosfera',[['dusk','Crepúsculo'],['dunes','Dunas'],['night','Suna à noite'],['custom','Suas cores']])}
+      ${chkRow('decor.gaaraHome','Refúgio de Sunagakure na Home')}
+      ${chkRow('decor.gaaraSand','Contornos de areia')}
+      ${chkRow('decor.gaaraSeal','Símbolo 愛 nas letras e na Home')}
+      ${chkRow('decor.gaaraFocus','Foco no verso que está tocando')}
+      </div>
       <div class="h">Efeitos</div>
+      ${chkRow('style.albumTint', 'Manter as cores da capa no cabeçalho')}
+      ${chkRow('style.borders', 'Mostrar bordas nos painéis')}
+      ${chkRow('style.shadows', 'Sombras suaves nos painéis')}
       ${chkRow('style.noAnim', 'Desativar animações e transições')}
-    </section>
-
-    <section data-tab="esconder">
-      <div class="h">Elementos do Spotify</div>
-      ${chkRow('hide.premium', 'Esconder "Upgrade to Premium" / "Explorar Premium"')}
-      ${chkRow('hide.history', 'Esconder botões voltar / avançar')}
-      ${chkRow('hide.scrollbars', 'Esconder barras de rolagem')}
-      <div class="h">Seletor de elementos</div>
-      <div class="acts"><button class="btn ghost sm" id="pick">Escolher elemento na tela</button></div>
-      <div class="hint">O painel fecha: clique no que quer esconder. Esc cancela.</div>
-      <div class="h">Seletores escondidos (um por linha)</div>
-      <textarea data-path="hide.selectors" spellcheck="false" placeholder=".exemplo-de-classe&#10;[data-testid=&quot;algo&quot;]"></textarea>
-      <div class="hint">Apague uma linha para mostrar o elemento de volta.</div>
     </section>
 
     <section data-tab="plugins">${M.panelSections.plugins}</section>
     <section data-tab="dev">${M.panelSections.dev}</section>
     <section data-tab="avancado">
+      <div class="h">Desempenho</div>
+      <label class="row"><span>Modo de renderização</span><select id="performanceMode"><option value="normal">Visual completo</option><option value="light">Leve</option></select></label>
+      <p class="hint">Leve mantém a paleta e os ícones; desativa fundos decorativos, vidro, sombras e animações. Pausa vídeos decorativos e prefere áudio quando o Spotify oferece essa opção.</p>
       <div class="h">CSS personalizado</div>
       <textarea data-path="css" spellcheck="false" placeholder="/* seu CSS aqui */"></textarea>
       <div class="h">JavaScript personalizado</div>
@@ -448,19 +385,28 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
   </div>
   <div class="pf">
     <button class="link" id="reset">Restaurar padrão</button>
-    <span class="hint">Izify · v${CFG.version}</span>
+    <button class="hint version" id="izifyVersion">Izify · v${CFG.version}</button>
   </div>
 </div>`);
     layer.appendChild(panel);
 
     const q = (s) => panel.querySelector(s);
+    q('#performanceMode').value=performanceControl.api.getState().mode;
+    q('#performanceMode').addEventListener('change',e=>performanceControl.api.setMode(e.target.value));
 
     /* abas */
     panel.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+      if (t.dataset.t === 'dev' && !devUnlocked) return;
       panel.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === t));
       panel.querySelectorAll('section').forEach((s) => s.classList.toggle('on', s.dataset.tab === t.dataset.t));
       panel.querySelector(".body").scrollTop = 0; extras?.activate(t.dataset.t);
     }));
+    q('#izifyVersion').addEventListener('click', () => {
+      if (devUnlocked || ++devClicks < 10) return;
+      devUnlocked = true;
+      q('[data-t="dev"]').hidden = false;
+      toast('Modo Dev ativado');
+    });
 
     /* inputs genéricos (data-path) */
     panel.addEventListener('input', (e) => {
@@ -482,10 +428,21 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
 
     /* presets */
     panel.querySelectorAll('.preset').forEach((b) => b.addEventListener('click', () => {
-      state.preset = b.dataset.preset;
-      state.colors = colorsOf(b.dataset.preset);
-      syncControls(); commit();
+      applyPreset(b.dataset.preset);
     }));
+    let importedSchemes = {};
+    const useScheme = () => { const scheme=importedSchemes[q('#themeScheme').value];if(!scheme)return;Object.assign(state.colors,scheme.colors);Object.assign(state.areas,scheme.areas);state.preset='custom';syncControls();commit();toast('Paleta aplicada. Ajuste o formato na aba Estilo.'); };
+    q('#themeImport').addEventListener('click',()=>q('#themeFile').click());
+    q('#themeFile').addEventListener('change',async e=>{
+      const file=e.target.files[0];if(!file)return;
+      try{
+        if(file.size>128*1024)throw new Error('Escolha um color.ini de até 128 KB.');
+        importedSchemes=M.parseThemeINI(await file.text());
+        q('#themeScheme').replaceChildren(...Object.keys(importedSchemes).map(name=>{const option=document.createElement('option');option.value=name;option.textContent=name;return option;}));
+        q('#themeScheme').hidden=false;useScheme();
+      }catch(error){toast(error.message);}finally{e.target.value='';}
+    });
+    q('#themeScheme').addEventListener('change',useScheme);
 
     /* fundo */
     q('#bgUrl').addEventListener('change', (e) => setBg(e.target.value.trim()));
@@ -544,16 +501,17 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
       if (dl) deleteProfile(dl.dataset.pdel);
     });
     q('#profSave').addEventListener('click', () => saveProfile(q('#profName').value));
-    q('#pick').addEventListener('click', startPicker);
     renderProfiles();
 
-    extras = M.createPanelExtras({ panel, logs, plugins, storage, assets, toast, getState: () => state, setFont: (font) => { state.style.font = font; commit(); }, isOpen: () => panelOpen });
+    extras = M.createPanelExtras({ panel, logs, plugins, storage, assets, toast, getState: () => state, setFont: (font) => { set('style.font',font);commit(); }, isOpen: () => panelOpen });
     syncControls();
   }
 
   function syncControls() {
+    migratePreferences();
     if (!shadow) return;
     const active = shadow.activeElement;
+    const gaaraFeatures=shadow.querySelector('#gaaraFeatures');if(gaaraFeatures)gaaraFeatures.hidden=M.themeCharacter(state)!=='gaara';
     shadow.querySelectorAll('[data-path]').forEach((n) => {
       if (n === active) return;
       if (n.type === 'checkbox') { n.checked = !!get(n.dataset.path); return; }
@@ -565,6 +523,14 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     shadow.querySelectorAll('[data-out]').forEach((n) => { n.textContent = get(n.dataset.out) + n.dataset.unit; });
     shadow.querySelectorAll('.preset').forEach((n) => n.classList.toggle('on', n.dataset.preset === state.preset));
     extras?.syncFont();
+    const preview=shadow.querySelector('#themePreview');
+    if(preview){
+      preview.style.backgroundColor=state.colors.panel;preview.style.color=state.colors.text;preview.style.borderColor=state.colors.border;preview.style.borderRadius=state.style.surfaceRadius+'px';
+      preview.querySelector('.preview-cover').style.background=state.colors.card;preview.querySelector('.preview-cover').style.color=state.colors.accent;preview.querySelector('.preview-cover').style.borderRadius=state.style.coverRound+'px';
+      preview.querySelector('.preview-play').style.background=state.colors.button;preview.querySelector('.preview-play').style.color=onColor(state.colors.button);
+      preview.querySelector('.preview-progress i').style.background=state.areas.progress||state.colors.accent;
+      const caption=preview.querySelector('#themeCaption');caption.style.color=state.colors.subtext;caption.textContent=PRESETS[state.preset]?.name||'Seu tema personalizado';
+    }
     const u = shadow.querySelector('#bgUrl');
     if (u && u !== active) u.value = state.bg.image.startsWith('data:') ? '' : state.bg.image;
     const st = shadow.querySelector('#bgState');
@@ -572,7 +538,7 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
   }
 
   function setBg(url) {
-    state.bg.image = url;
+    set('bg.image',url);
     if (url && state.bg.panelOpacity === 100) state.bg.panelOpacity = 70; // deixa a imagem visível
     syncControls(); commit();
   }
@@ -594,7 +560,20 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     rd.readAsDataURL(file);
   }
 
-  function openPanel(page) { if (!panel) buildPanel(); panelOpen = true; panel.classList.add('open'); if (btn) btn.dataset.open = 'true'; if (typeof page === 'string') panel.querySelector('[data-t="' + page.replace(/[^a-z]/g, '') + '"]').click(); extras?.renderLogs(); }
+  let devClicks = 0, devUnlocked = false;
+  function applyPreset(id) {
+    const preset=PRESETS[id];if(!preset)throw new Error('Tema desconhecido.');
+    state.preset=id;
+    for(const key of ['colors','areas','bg','style','decor']) state[key]=clone(preset[key]);
+    syncControls();commit();
+  }
+  function openPanel(page) {
+    if (page === 'dev' && !devUnlocked) return;
+    if (!panel) buildPanel(); panelOpen = true; panel.classList.add('open');
+    if (btn) btn.dataset.open = 'true';
+    if (typeof page === 'string') panel.querySelector('[data-t="' + page.replace(/[^a-z]/g, '') + '"]')?.click();
+    extras?.renderLogs();
+  }
   function closePanel() { panelOpen = false; if (panel) panel.classList.remove('open'); if (btn) btn.dataset.open = 'false'; }
   function togglePanel() { panelOpen ? closePanel() : openPanel(); }
 
@@ -641,130 +620,6 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     renderProfiles();
   }
 
-  /* ------------------------------ ESCONDER ELEMENTOS --------------------- */
-  function selectorFor(node) {
-    const esc = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : v.replace(/[^\w-]/g, '\\$&'));
-    const stable = (c) => !/-sc-/.test(c) && /[-_]/.test(c);
-    const parts = [];
-    let n = node;
-    for (let depth = 0; n && n.nodeType === 1 && n !== document.body && depth < 7; depth++, n = n.parentElement) {
-      let p = n.tagName.toLowerCase();
-      const tid = n.getAttribute('data-testid');
-      const cls = [...n.classList].filter(stable).slice(0, 2);
-      if (tid) p += '[data-testid="' + tid.replace(/"/g, '\\"') + '"]';
-      else if (n.id && !/\d{3,}/.test(n.id)) p = '#' + esc(n.id);
-      else if (cls.length) p += cls.map((x) => '.' + esc(x)).join('');
-      else if (n.parentElement) p += ':nth-child(' + (Array.prototype.indexOf.call(n.parentElement.children, n) + 1) + ')';
-      parts.unshift(p);
-      const sel = parts.join(' > ');
-      try { if (document.querySelectorAll(sel).length === 1) return sel; } catch (e) { /* ignore */ }
-    }
-    return parts.join(' > ');
-  }
-
-  function addHide(sel) {
-    const cur = (state.hide.selectors || '').split('\n').map((x) => x.trim()).filter(Boolean);
-    if (!cur.includes(sel)) cur.push(sel);
-    state.hide.selectors = cur.join('\n');
-    syncControls(); commit();
-  }
-
-  function startPicker() {
-    ensureHost();
-    closePanel();
-    const box = el('<div class="pickbox"></div>');
-    const tip = el('<div class="picktip">Clique no elemento para esconder · Esc cancela</div>');
-    layer.append(box, tip);
-    let cur = null;
-    const inUi = (e) => e.composedPath().includes(host) || e.composedPath().includes(btn);
-
-    const move = (e) => {
-      if (inUi(e)) return;
-      const t = e.target;
-      if (!t || t === document.documentElement || t === document.body) return;
-      cur = t;
-      const r = t.getBoundingClientRect();
-      Object.assign(box.style, { display: 'block', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
-    };
-    const block = (e) => { if (inUi(e)) return; e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); };
-    const click = (e) => {
-      if (inUi(e)) return;
-      block(e);
-      if (cur) { addHide(selectorFor(cur)); toast('Elemento escondido'); }
-      stop();
-    };
-    const key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); stop(); } };
-
-    function stop(silent) {
-      document.removeEventListener('mousemove', move, true);
-      document.removeEventListener('click', click, true);
-      document.removeEventListener('mousedown', block, true);
-      document.removeEventListener('mouseup', block, true);
-      document.removeEventListener('pointerdown', block, true);
-      document.removeEventListener('keydown', key, true);
-      box.remove(); tip.remove();
-      stopPick = null;
-      if (silent !== true && !dead) openPanel();
-    }
-    stopPick = stop;
-    document.addEventListener('mousemove', move, true);
-    document.addEventListener('click', click, true);
-    document.addEventListener('mousedown', block, true);
-    document.addEventListener('mouseup', block, true);
-    document.addEventListener('pointerdown', block, true);
-    document.addEventListener('keydown', key, true);
-  }
-
-  // ---- "Upgrade to Premium": remoção instantânea e permanente ----
-  // O MutationObserver roda como microtask, ANTES do navegador pintar o frame:
-  // o item é removido no mesmo instante em que o Spotify o cria (sem piscar).
-  const PREMIUM_SEL =
-    '[role="menuitem"], [role="menu"] li, [role="menu"] a, .main-topBar-container a, .main-topBar-container button, ' +
-    '.main-topBar-UpgradeButton, [data-testid="upgrade-button"]';
-  let purgeObs = null;
-
-  function purgeNode(n) {
-    if (!n || n.nodeType !== 1 || n.closest('#izify-btn')) return;
-    const txt = n.textContent || '';
-    if (txt.length > 60) return; // evita pegar contêineres grandes
-    const href = n.getAttribute('href') || '';
-    const hit = /premium/i.test(txt) || /\/premium/i.test(href) ||
-      n.matches('.main-topBar-UpgradeButton, [data-testid="upgrade-button"]');
-    if (!hit) return;
-    if (n.closest('[role="menu"]')) {
-      // menus são efêmeros (o Spotify desmonta o menu inteiro ao fechar): dá pra remover do DOM de vez
-      (n.closest('li') || n).remove();
-    } else {
-      // na topbar o nó pertence ao React: escondido por CSS + display:none (remover poderia quebrar o render)
-      n.style.setProperty('display', 'none', 'important');
-      n.setAttribute('data-iz-hidden', '1');
-    }
-  }
-
-  function scanPremium(root) {
-    if (!state.hide.premium || !root || root.nodeType !== 1) return;
-    if (root.matches(PREMIUM_SEL)) purgeNode(root);
-    root.querySelectorAll(PREMIUM_SEL).forEach(purgeNode);
-  }
-
-  function startPurge() {
-    if (purgeObs || !document.documentElement) return;
-    purgeObs = new MutationObserver((muts) => {
-      if (!state.hide.premium) return;
-      for (const m of muts) for (const n of m.addedNodes) scanPremium(n);
-    });
-    purgeObs.observe(document.documentElement, { childList: true, subtree: true });
-    scanPremium(document.body);
-  }
-
-  // Rede de segurança (chamada no commit e no observer lento da topbar)
-  function applyHides() {
-    document.querySelectorAll('[data-iz-hidden]').forEach((n) => {
-      if (!state.hide.premium) { n.style.removeProperty('display'); n.removeAttribute('data-iz-hidden'); }
-    });
-    if (state.hide.premium) scanPremium(document.body);
-  }
-
   /* ------------------------------ JS PERSONALIZADO ----------------------- */
   function showJsOut(text, kind) {
     const o = shadow && shadow.querySelector('#jsOut');
@@ -805,12 +660,13 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
 
   /* ------------------------------ BOTÃO NA TOPBAR ------------------------ */
   function mountButton() {
-    if (!document.body) return;
+    if (dead || !document.body) return;
     if (!btn) {
       btn = el(`<button id="izify-btn" title="Izify — Personalizar" aria-label="Izify">${svg(I.palette)}</button>`);
       btn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel(); });
       btn.dataset.open = 'false';
     }
+    themeEngine?.syncButton(state);
     const user = document.querySelector('[data-testid="user-widget-link"]');
     const right = document.querySelector('.main-topBar-topbarContentRight');
     let parent = null, before = null;
@@ -826,9 +682,12 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     }
   }
 
+  let topbarTimer;
   function watchTopbar() {
-    let t;
-    observer = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { mountButton(); applyHides(); }, 200); });
+    observer = new MutationObserver(() => {
+      if(btn?.isConnected&&!btn.classList.contains('iz-floating'))return;
+      if(!topbarTimer)topbarTimer=setTimeout(()=>{topbarTimer=null;mountButton();},200);
+    });
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
@@ -849,6 +708,10 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     if (dead) return;
     dead = true;
     cancelAnimationFrame(themeFrame);
+    clearTimeout(themeTimer);
+    clearTimeout(topbarTimer);
+    performanceControl.destroy();
+    themeEngine?.destroy();
     extras?.destroy();
     await plugins.destroy();
     await storage.close();
@@ -856,17 +719,17 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     clearTimeout(saveTimer);
     save();
     if (observer) observer.disconnect();
-    if (purgeObs) { purgeObs.disconnect(); purgeObs = null; }
     if (onDown) document.removeEventListener('mousedown', onDown, true);
     if (onEsc) document.removeEventListener('keydown', onEsc);
     if (welcomeKey) document.removeEventListener('keydown', welcomeKey, true);
-    if (stopPick) stopPick(true);
     document.querySelectorAll('[data-iz-hidden]').forEach((n) => { n.style.removeProperty('display'); n.removeAttribute('data-iz-hidden'); });
     if (btn) btn.remove();
     if (host) host.remove();
+    M.releaseAssets();
     ['izify-theme', 'izify-custom', 'izify-ui'].forEach((id) => { const n = document.getElementById(id); if (n) n.remove(); });
     document.documentElement.style.removeProperty('--izify-accent');
     delete window.izify;
+    window.__izifyDownloadBridge?.dispose();
     window.__izify = null;
   }
 
@@ -878,7 +741,7 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
 
   const ready = (async function init() {
     applyTheme(); // aplica o tema cedo, evita "flash" do tema original
-    startPurge(); // começa a eliminar o "Upgrade to Premium" desde o primeiro render
+    migratePreferences(); save();
 
     const ok = await waitFor(spotifyReady, CFG.loadTimeout);
     if (!ok) console.warn('[Izify] Spotify demorou pra carregar — seguindo mesmo assim (botão flutuante).');
@@ -888,7 +751,6 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
     ensureHost();
     buildPanel();
     mountButton();
-    applyHides();
     watchTopbar();
     bindGlobalEvents();
     for (const plugin of assets.builtins || []) await plugins.install(plugin.source, { builtin: true });
@@ -905,10 +767,14 @@ ${hideList.length ? hideList.join(',\n') + ' { display:none !important; }' : ''}
 
   // atalhos úteis pra debug no console
   window.izify = {
-    open: openPanel, close: closePanel, welcome: showWelcome, destroy, ready, logs, plugins,
+    open: openPanel, close: closePanel, welcome: showWelcome, destroy, ready, logs, plugins,performance:performanceControl.api,
     set: (path, value) => { if (get(path) === undefined) throw new Error("Preferência desconhecida"); set(path, value); syncControls(); commit(); },
     run: (code) => runUserJS(code),
     reset: () => { state = clone(DEFAULTS); syncControls(); commit(); },
+    applyPreset,
+    themeStatus: () => themeEngine?.status() || {native:true,adaptedRules:0,inaccessibleSheets:0,sheets:0,surfaces:{}},
+    get personalization() { return themeEngine?.api; },
+    get presets() { return clone(PRESETS); },
     get state() { return clone(state); },
   };
   window.__izify = window.izify;

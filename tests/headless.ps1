@@ -60,7 +60,18 @@ try {
     }
     if (-not $fixtureReady) { throw 'Fixture page did not load.' }
     if ($server.State -eq 'Failed') { Receive-Job $server; throw 'Fixture server failed.' }
-    & (Join-Path $PSScriptRoot 'smoke.ps1') -Port $debugPort
+    $nativeCss = ''
+    $spotifyArchive = Join-Path $env:APPDATA 'Spotify/Apps/xpui.spa'
+    if (Test-Path -LiteralPath $spotifyArchive) {
+        # Read installed CSS without starting or modifying Spotify.
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $archive = [IO.Compression.ZipFile]::OpenRead($spotifyArchive)
+        try {
+            $entry = $archive.GetEntry('xpui-snapshot.css')
+            if ($entry) { $reader = New-Object IO.StreamReader($entry.Open()); try { $nativeCss = $reader.ReadToEnd() } finally { $reader.Dispose() } }
+        } finally { $archive.Dispose() }
+    }
+    & (Join-Path $PSScriptRoot 'smoke.ps1') -Port $debugPort -NativeCss $nativeCss
 } finally {
     if ($chrome -and -not $chrome.HasExited) {
         try {

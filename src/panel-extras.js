@@ -3,12 +3,10 @@
   const M = window.__izifyModules ||= {};
   const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
   M.panelSections = {
-    fonts: `<input class="txt" id="fontSearch" type="search" placeholder="Buscar fonte…" aria-label="Buscar fonte">
-      <div class="font-list" id="fontList" role="listbox" aria-label="Fontes"></div>
-      <div class="acts"><input class="txt" id="fontCustom" placeholder="Outra fonte instalada"><button class="btn ghost sm" id="fontApply">Aplicar</button><button class="btn ghost sm" id="fontReset">Padrão</button></div>
-      <div class="font-preview" id="fontPreview">Sua música, sua fonte. Aa Bb Cc 0123</div>`,
-    plugins: `<div class="h">Seus plugins</div><div class="acts"><button class="btn primary sm" id="pluginPick">Adicionar .js</button><button class="btn ghost sm" id="pluginRestore">Restaurar adblock</button></div>
-      <input id="pluginFile" type="file" accept=".js" hidden><p class="hint">Cada addon informa nome, descrição, autor e versão. Novos arquivos começam desativados.</p><div id="pluginList"></div>`,
+    fonts: `<div class="font-list" id="fontList" role="listbox" aria-label="Fontes"></div>
+      <button class="btn ghost sm" id="fontReset">Padrão</button>`,
+    plugins: `<div class="plugins-heading"><div><div class="h">Seus plugins</div><span class="hint" id="pluginCount"></span></div><button class="btn plugin-add sm" id="pluginPick"><span aria-hidden="true">+</span> Adicionar .js</button></div>
+      <input id="pluginFile" type="file" accept=".js" hidden><p class="hint plugin-help">Importe um addon para personalizar seu Spotify. Você escolhe quando ativá-lo.</p><div id="pluginList"></div>`,
     dev: `<div class="h">Logs do Izify e plugins</div><div class="dev-controls"><select id="logLevel" aria-label="Nível dos logs"><option value="all">Todos os níveis</option>${['info','ok','warn','error','debug','net','dom'].map(v=>`<option value="${v}">${v}</option>`).join('')}</select><select id="logSource" aria-label="Origem dos logs"><option value="all">Todos os plugins</option></select></div>
       <input class="txt" id="logSearch" type="search" placeholder="Buscar nos logs…" aria-label="Buscar logs"><div class="dev-logs" id="devLogs" role="log" aria-label="Logs"></div>
       <div class="acts"><button class="btn ghost sm" id="logPause">Pausar</button><button class="btn ghost sm" id="logCopy">Copiar</button><button class="btn ghost sm" id="logExport">Exportar</button><button class="btn ghost sm" id="logClear">Limpar</button><button class="btn ghost sm" id="devExpand">Ampliar</button></div>
@@ -31,22 +29,22 @@
       measurements.set(name,found);return found;
     }
     function renderFonts(){
-      const query=$('#fontSearch').value.toLowerCase(),current=getState().style.font;
+      const current=getState().style.font;
       const fonts=[...new Set(['Segoe UI','Arial','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Consolas','Courier New','Comic Sans MS','Impact','Calibri','Cambria','Cascadia Mono',...[...document.fonts].map(f=>f.family.replace(/["']/g,'')),...(current?[current]:[])])];
-      $('#fontList').innerHTML=fonts.filter(n=>n.toLowerCase().includes(query)).map(n=>`<button class="font-option" role="option" aria-selected="${n===current}" data-font="${escape(n)}" style="font-family:&quot;${escape(fontName(n))}&quot;,sans-serif" ${available(n)?'':'disabled'}><span>${escape(n)}</span>${available(n)?'':'<small>não instalada</small>'}</button>`).join('') || '<div class="hint">Nenhuma fonte encontrada.</div>';
+      $('#fontList').innerHTML=fonts.map(n=>`<button class="font-option" role="option" aria-selected="${n===current}" data-font="${escape(n)}" style="font-family:&quot;${escape(fontName(n))}&quot;,sans-serif" ${available(n)?'':'disabled'}><span>${escape(n)}</span>${available(n)?'':'<small>não instalada</small>'}</button>`).join('') || '<div class="hint">Nenhuma fonte encontrada.</div>';
     }
     function syncFont(){
       if(destroyed)return;
       const value=getState().style.font;
-      $('#fontPreview').style.fontFamily=value?`"${fontName(value)}",sans-serif`:'inherit';
-      if(panel.getRootNode().activeElement!==$('#fontCustom'))$('#fontCustom').value=value;
       for(const option of panel.querySelectorAll('.font-option'))option.setAttribute('aria-selected',String(option.dataset.font===value));
     }
     function chooseFont(name){name=fontName(name);if(name&&!available(name))return toast('Instale essa fonte no Windows antes de aplicar.');setFont(name);syncFont();renderFonts();}
     function renderPlugins(){
       if(destroyed)return;
       const labels={active:'Ativo',disabled:'Desativado',starting:'Iniciando…',stopping:'Parando…',error:'Erro'};
-      $('#pluginList').innerHTML=plugins.list().map(p=>`<article class="plugin-card"><div class="plugin-title"><strong>${escape(p.name)}</strong><span class="plugin-state ${p.phase}">${labels[p.phase]}</span></div><p>${escape(p.description)}</p><small>${escape(p.author)} · v${escape(p.version)}</small>${p.error?`<p class="plugin-error">${escape(p.error)}</p>`:''}<div class="acts"><button class="btn ${p.phase==='active'?'ghost':'primary'} sm" data-plugin="${escape(p.id)}" data-enable="${p.phase!=='active'}" ${['starting','stopping'].includes(p.phase)?'disabled':''}>${p.phase==='active'?'Desativar':'Ativar'}</button><button class="btn ghost sm" data-remove-plugin="${escape(p.id)}">Excluir</button></div></article>`).join('')||'<p class="hint">Nenhum plugin instalado.</p>';
+      const items=plugins.list();
+      $('#pluginCount').textContent=`${items.length} instalado${items.length===1?'':'s'} · ${items.filter(p=>p.phase==='active').length} ativo${items.filter(p=>p.phase==='active').length===1?'':'s'}`;
+      $('#pluginList').innerHTML=items.map(p=>`<article class="plugin-card ${p.phase==='active'?'is-active':''}"><div class="plugin-title"><span class="plugin-icon" aria-hidden="true">${p.builtin?'◇':'⌘'}</span><div class="plugin-name"><strong>${escape(p.name)}</strong><span class="plugin-meta">${escape(p.author)} <span>·</span> v${escape(p.version)}</span></div><span class="plugin-state ${p.phase}">${labels[p.phase]}</span></div><p>${escape(p.description)}</p>${p.error?`<p class="plugin-error">${escape(p.error)}</p>`:''}<div class="plugin-actions"><button class="plugin-remove" data-remove-plugin="${escape(p.id)}" aria-label="Excluir ${escape(p.name)}" ${['starting','stopping'].includes(p.phase)?'disabled':''}>Excluir</button><button class="plugin-toggle" role="switch" aria-label="Ativar ${escape(p.name)}" aria-checked="${p.phase==='active'}" data-plugin="${escape(p.id)}" data-enable="${p.phase!=='active'}" ${['starting','stopping'].includes(p.phase)?'disabled':''}><span></span></button></div></article>`).join('')||'<div class="plugin-empty">Nenhum plugin instalado.<p>Adicione um arquivo .js para começar.</p></div>';
       updateSources();
     }
     function updateSources(){
@@ -63,11 +61,10 @@
     }
     const unsubscribe=logs.subscribe(()=>{if(!logTimer&&isOpen()&&currentTab==='dev'&&!paused)logTimer=setTimeout(renderLogs,120);});
     function exportText(text){const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));objectURLs.add(url);const a=document.createElement('a');a.href=url;a.download='izify-logs.txt';document.body.append(a);a.click();a.remove();}
-    on($('#fontSearch'),'input',renderFonts);on($('#fontList'),'click',e=>{const option=e.target.closest('[data-font]');if(option&&!option.disabled)chooseFont(option.dataset.font);});
-    on($('#fontApply'),'click',()=>chooseFont($('#fontCustom').value));on($('#fontReset'),'click',()=>chooseFont(''));on($('#fontCustom'),'keydown',e=>{if(e.key==='Enter'){e.preventDefault();chooseFont(e.target.value);}});
+    on($('#fontList'),'click',e=>{const option=e.target.closest('[data-font]');if(option&&!option.disabled)chooseFont(option.dataset.font);});
+    on($('#fontReset'),'click',()=>chooseFont(''));
     on($('#pluginPick'),'click',()=>$('#pluginFile').click());
     on($('#pluginFile'),'change',async e=>{const file=e.target.files[0];if(!file)return;try{if(!/\.js$/i.test(file.name)||file.size>1024*1024)throw new Error('Escolha um arquivo .js de até 1 MB.');await plugins.install(await file.text(),{filename:file.name});toast('Plugin importado. Use Ativar para iniciar.');}finally{e.target.value='';}});
-    on($('#pluginRestore'),'click',async()=>{await plugins.restoreBuiltin(assets.builtins.find(p=>p.id==='ad-block').source);toast('Adblock restaurado.');});
     on($('#pluginList'),'click',async e=>{const button=e.target.closest('button');if(!button||button.disabled)return;if(button.dataset.plugin)await plugins.enable(button.dataset.plugin,button.dataset.enable==='true');if(button.dataset.removePlugin)await plugins.remove(button.dataset.removePlugin);});
     for(const [selector,event] of [['#logLevel','change'],['#logSource','change'],['#logSearch','input']])on($(selector),event,renderLogs);
     on($('#logPause'),'click',()=>{paused=!paused;$('#logPause').textContent=paused?'Continuar':'Pausar';renderLogs();});
