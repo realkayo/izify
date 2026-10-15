@@ -1,0 +1,306 @@
+{
+    "product":  "Izify",
+    "format":  1,
+    "files":  [
+                  {
+                      "path":  ".gitignore",
+                      "bytes":  243,
+                      "sha256":  "a78395fb128f68dce4f14e585858e6ed71c46008771aec5def9804bc00ed5030"
+                  },
+                  {
+                      "path":  "assets/icons/download.svg",
+                      "bytes":  266,
+                      "sha256":  "009894af38a3d4c3b6f63f4d13964d141b43322f5ff9f91df98d34a862b4e070"
+                  },
+                  {
+                      "path":  "assets/icons/LICENSE",
+                      "bytes":  3208,
+                      "sha256":  "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+                  },
+                  {
+                      "path":  "assets/logo.txt",
+                      "bytes":  606,
+                      "sha256":  "5f285d9a3bd211b58d095817843cf9365cdc08fc32e1887327bf2914262bcc98"
+                  },
+                  {
+                      "path":  "assets/themes/gaara/gourd.svg",
+                      "bytes":  865,
+                      "sha256":  "03618ed5562afbbd85e5e97322e470b44a4467580a67470b3db0e77ea5e61b15"
+                  },
+                  {
+                      "path":  "assets/themes/gaara/head.png",
+                      "bytes":  22128,
+                      "sha256":  "219e282616c3fea06e8dc74171b59e1184568da93006e04934b1e433063967e0"
+                  },
+                  {
+                      "path":  "assets/themes/gaara/liked-songs.svg",
+                      "bytes":  5297,
+                      "sha256":  "6614aacca5c22373026d375045930d7ff685a95536a9366915ee508639006666"
+                  },
+                  {
+                      "path":  "assets/themes/gaara/seal.svg",
+                      "bytes":  4386,
+                      "sha256":  "37872b71ebb272c00057c92328b07d965d8c35e2adf84949bd87df5ec9522ad3"
+                  },
+                  {
+                      "path":  "assets/themes/gaara/wallpaper.jpg",
+                      "bytes":  181079,
+                      "sha256":  "3e1c0b53ed3983c303e944f4012d8135b6b0b51a285b3c51c972b3a47ff8e596"
+                  },
+                  {
+                      "path":  "assets/themes/kuromi/head.png",
+                      "bytes":  11978,
+                      "sha256":  "2fe8c901e4fe7e7c77d3242a8374132486a67222226e4301cc1f006e2f979f82"
+                  },
+                  {
+                      "path":  "assets/themes/kuromi/liked-songs.png",
+                      "bytes":  168823,
+                      "sha256":  "b5c23bd2b00ea4378f3d54b5fc3d9b3fb48393bc14bb3f7448746e254aac2bb4"
+                  },
+                  {
+                      "path":  "assets/themes/kuromi/wallpaper.png",
+                      "bytes":  574316,
+                      "sha256":  "79e38b1b6ee688d61ca783cfc44e0e377fe946b4f0c640024d1f41ac805c48a9"
+                  },
+                  {
+                      "path":  "build.ps1",
+                      "bytes":  510,
+                      "sha256":  "33e3f8788584eca7053a7c7eef674695d9e2d5a265441b80e1e7841680687ac1"
+                  },
+                  {
+                      "path":  "dist/izify.bundle.js",
+                      "bytes":  1502444,
+                      "sha256":  "bf75a0c201e7a7833ca866a076a3b8c5161a46b58cf8d478431b1dcd4f9e1f52"
+                  },
+                  {
+                      "path":  "docs/README-release.md",
+                      "bytes":  3029,
+                      "sha256":  "fc40ef5d60e02d7e61374895045edb56eefd68be8a39b740032dcd3a5a3aa6ba"
+                  },
+                  {
+                      "path":  "docs/release.gitignore",
+                      "bytes":  243,
+                      "sha256":  "a78395fb128f68dce4f14e585858e6ed71c46008771aec5def9804bc00ed5030"
+                  },
+                  {
+                      "path":  "instalar.bat",
+                      "bytes":  332,
+                      "sha256":  "5a557dbdf29aa68a536688f37bcc3cae6079eff08e4eb24ba590c3a84980415e"
+                  },
+                  {
+                      "path":  "install.ps1",
+                      "bytes":  8795,
+                      "sha256":  "29a4b431dc28b5c48061e25557cc134f6be2785f26dcf47dadd1bc0d7b5e1848"
+                  },
+                  {
+                      "path":  "izify-ui.js",
+                      "bytes":  41428,
+                      "sha256":  "8e5dc29073c60bf199489f8b83af80e36438fdae571d0a4c6f852ec65e9f0cf7"
+                  },
+                  {
+                      "path":  "launch.ps1",
+                      "bytes":  1474,
+                      "sha256":  "93cecc438c2beb93937c7167dac45f9047dafe426c27d7b6894f49cc44e88f58"
+                  },
+                  {
+                      "path":  "plugins/ad-block.js",
+                      "bytes":  37434,
+                      "sha256":  "1b6c937098ec45a0ea72b476f50e8c865b76a2fa3bb3e0f65953dfa06829d4cd"
+                  },
+                  {
+                      "path":  "plugins/download.js",
+                      "bytes":  15384,
+                      "sha256":  "8baaa7b123f7516f6f02324923047595be00f8030c7cc9d488f289f7c6a263d1"
+                  },
+                  {
+                      "path":  "plugins/example.js",
+                      "bytes":  509,
+                      "sha256":  "d2a79fbcf4f6ac06e1c9f535346f7663e9e9756cbc7f2b489b679e10b11cc5d2"
+                  },
+                  {
+                      "path":  "preparar-github.bat",
+                      "bytes":  310,
+                      "sha256":  "dc0da434a9b87bab546781248bfebfa914cef0ad89a4aa2093d0fe0c7aad3976"
+                  },
+                  {
+                      "path":  "probe.js",
+                      "bytes":  5522,
+                      "sha256":  "b7d3760aa0f0b47685962574c39c6cfea7e077852b8c7ecbca14d879ff3f83c2"
+                  },
+                  {
+                      "path":  "README.md",
+                      "bytes":  3029,
+                      "sha256":  "fc40ef5d60e02d7e61374895045edb56eefd68be8a39b740032dcd3a5a3aa6ba"
+                  },
+                  {
+                      "path":  "run.ps1",
+                      "bytes":  5333,
+                      "sha256":  "4f8cac64443058f66433f3556c8a066230c7302a71d3c461a20d9341bfd99eaa"
+                  },
+                  {
+                      "path":  "src/core/assets.js",
+                      "bytes":  730,
+                      "sha256":  "2e69078cdbceaba65d9a715864a58417d35f2acf219c060bebcc6f3e70a23e6e"
+                  },
+                  {
+                      "path":  "src/core/download-bridge.js",
+                      "bytes":  1854,
+                      "sha256":  "87f88b8ec4f0c30ca8cb70912d46ab80eb20e186aa03501c440baf48d526676d"
+                  },
+                  {
+                      "path":  "src/core/gaara.js",
+                      "bytes":  11314,
+                      "sha256":  "507b635db26f773611597075c22d3eca021cd7cbd81f54b19cea44dd2c852af5"
+                  },
+                  {
+                      "path":  "src/core/logs.js",
+                      "bytes":  1555,
+                      "sha256":  "c31e05d8c9ae05837f25bb3d8efdd72c27d651ee98b5b4cca64ceff9e30b95ee"
+                  },
+                  {
+                      "path":  "src/core/lyrics.js",
+                      "bytes":  8359,
+                      "sha256":  "84cccee02f1bf8ac985913046ab8f46894ebc7903ed339ccf0097dce1f8db457"
+                  },
+                  {
+                      "path":  "src/core/performance.js",
+                      "bytes":  3626,
+                      "sha256":  "1cd4ab66cf654554ddf1d16c6ba43a8e35a02c78535a42948ddd4f8e7e17c32d"
+                  },
+                  {
+                      "path":  "src/core/personalization.js",
+                      "bytes":  3987,
+                      "sha256":  "3d0e30915a3b9be1039de6bb4925c9528efaca2fba29d0da5a28619ee591a248"
+                  },
+                  {
+                      "path":  "src/core/plugins.js",
+                      "bytes":  9257,
+                      "sha256":  "b3c4c5e684a4ebd525651428c33c4570f1f40ac1c2bc5befd2bfbe6b119dc813"
+                  },
+                  {
+                      "path":  "src/core/storage.js",
+                      "bytes":  1798,
+                      "sha256":  "4f4150547f4f53f6b3d44471ff4277c6ca89f8ef3e3d6266d2074c786d61cda5"
+                  },
+                  {
+                      "path":  "src/core/themes.js",
+                      "bytes":  32178,
+                      "sha256":  "0a28636978c955da25fc15cc4f99d835a9cf929a4e1450d45f3747b7bfbb08bb"
+                  },
+                  {
+                      "path":  "src/panel-extras.js",
+                      "bytes":  10693,
+                      "sha256":  "c66cf088935c2211593a6411975e93857c3eac9962b51ba280ff8b61ee356de2"
+                  },
+                  {
+                      "path":  "src/ui.css",
+                      "bytes":  14141,
+                      "sha256":  "4f778d5dedf5d2eac29ebeac4b296191d234ae8a10842e0e2be478b7bb688b12"
+                  },
+                  {
+                      "path":  "tests/auto-start.ps1",
+                      "bytes":  9612,
+                      "sha256":  "943070a4b86bc3e5bf7a936ecbdbfc5e24c5b2be79a2a00fe7cba40a783629ef"
+                  },
+                  {
+                      "path":  "tests/download.ps1",
+                      "bytes":  6645,
+                      "sha256":  "9f72746c7dd8193d7886b6951f07d439478d9dae552f84582aefe5ea2235959d"
+                  },
+                  {
+                      "path":  "tests/fixture.html",
+                      "bytes":  6614,
+                      "sha256":  "3a3cc0922c6be3fb01388c99f022292b3e005fdd17172b7293fa361a80854dd5"
+                  },
+                  {
+                      "path":  "tests/gaara.js",
+                      "bytes":  6700,
+                      "sha256":  "1a2cb8830fdde0d5d6d8212512e364a2f31e54ace9b4b1fe3d310490a85bdeec"
+                  },
+                  {
+                      "path":  "tests/gaara-preview.js",
+                      "bytes":  3359,
+                      "sha256":  "b589c88a237adcd3580091a6e3676f988c3ea8812c4cd35bf1bf146bf0346941"
+                  },
+                  {
+                      "path":  "tests/headless.ps1",
+                      "bytes":  4522,
+                      "sha256":  "c357cbcd8310b207840adcf87b9b1bd652c3c9e27dbb1249806ecf40ba873ae9"
+                  },
+                  {
+                      "path":  "tests/installer.ps1",
+                      "bytes":  901,
+                      "sha256":  "30774d2e61fdf0b28db6d9e7109a546cc0ff74c94bef145dc93eda2397797e39"
+                  },
+                  {
+                      "path":  "tests/installer-fixture.ps1",
+                      "bytes":  8284,
+                      "sha256":  "b0ce0e78cea6939349938e5326648f1f24d37ef70f9b55a4161d2901b4994a19"
+                  },
+                  {
+                      "path":  "tests/release.ps1",
+                      "bytes":  6764,
+                      "sha256":  "abc4d958a4538512e221260ec99cafe727b1cd462637794b567dd582015903e6"
+                  },
+                  {
+                      "path":  "tests/smoke.ps1",
+                      "bytes":  46505,
+                      "sha256":  "d51732d544a0e7c3c44213118c03717638f52346824cfa2d1c1ae83351e02383"
+                  },
+                  {
+                      "path":  "tests/uninstall.ps1",
+                      "bytes":  5223,
+                      "sha256":  "f3b24fdbd28821d8c04b6805e7951639a2332b9811755134c199f5f6a96e818d"
+                  },
+                  {
+                      "path":  "tools/auto-start.ps1",
+                      "bytes":  16385,
+                      "sha256":  "2e63f704bcfa862be74df826e75ac2b9c2ef8110866f0628533239251b2e7efb"
+                  },
+                  {
+                      "path":  "tools/benchmark.ps1",
+                      "bytes":  4648,
+                      "sha256":  "088735bf481206cfd5feffefcad0d3e8d32c5f7ed6fc91f7f501692e60222206"
+                  },
+                  {
+                      "path":  "tools/bundle.ps1",
+                      "bytes":  3750,
+                      "sha256":  "dc03c4439362808825b54c80960a382d79ec30cb0c7c0c6af9d40f898771fe90"
+                  },
+                  {
+                      "path":  "tools/cdp.ps1",
+                      "bytes":  3595,
+                      "sha256":  "22aed295c2ce21e4f7fc09f88ba90bfe7b4c51c60a0a6e91addf8add796367e7"
+                  },
+                  {
+                      "path":  "tools/download-bridge.ps1",
+                      "bytes":  2008,
+                      "sha256":  "705d842081b85b3b1da3d4b07bd115d231e73d2642f849b28eb8da7584a3c07b"
+                  },
+                  {
+                      "path":  "tools/download-worker.ps1",
+                      "bytes":  9212,
+                      "sha256":  "ab24d04c7c7fe31bfa5ab866f5d4d712910362692ae461d3bebf96ac2b06fb37"
+                  },
+                  {
+                      "path":  "tools/launcher.cs",
+                      "bytes":  2869,
+                      "sha256":  "c2eb45ef5165cacf2d44acab256c2ceb3d3126ca1405540671767dd9b8ad3c01"
+                  },
+                  {
+                      "path":  "tools/prepare-release.ps1",
+                      "bytes":  5749,
+                      "sha256":  "64eec8f2d790e9d83bed96d8caf71c7cbcac3a80d6609835ed837a692c1528f7"
+                  },
+                  {
+                      "path":  "tools/uninstall.ps1",
+                      "bytes":  8501,
+                      "sha256":  "94f8311f8d7c3303914e4cd1235cc4be31f9b851099c1a41b64b9c12ba60abac"
+                  },
+                  {
+                      "path":  "uninstall.ps1",
+                      "bytes":  1196,
+                      "sha256":  "6dd9b148d08d270ace4fc097fd030acf6bd6b31b5a4811851b0e7e0c36933f7a"
+                  }
+              ]
+}
