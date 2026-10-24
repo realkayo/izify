@@ -33,7 +33,7 @@ Use o botao do Izify na barra superior. Gaara oferece atmosferas de Sunagakure,
 selo 愛, cabaca no volume e foco nas letras. O tema Spotify restaura a aparencia
 nativa. Kuromi inclui suas artes, icones e marcadores de letras.
 
-## Desenvolver e gerar outra build
+##gerar outra build
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1 -Watch
@@ -43,31 +43,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 `-Watch` pertence a `run.ps1`, nao a `install.ps1`.
 O projeto usa PowerShell 5.1 e .NET do Windows, sem Node ou Python.
 
-Para preparar uma nova distribuicao, abra **preparar-github.bat**. Ele cria uma
-pasta nova em `release/`, uma build em `dist/izify.bundle.js` dentro do pacote,
-um manifesto de hashes e um ZIP. Nao apaga o projeto nem suas preferencias.
-
-## Publicar no GitHub
-
-Publique o **conteudo da pasta `github` gerada**, incluindo `src`, `assets`,
-`plugins`, `tools` e `dist`. O bundle isolado nao substitui o instalador.
-O `.gitignore` dessa pasta permite incluir `dist/izify.bundle.js` e exclui
-arquivos locais criados ao usar o aplicativo. O ZIP pode ser anexado a um Release.
-
-O comando remoto abaixo exige que todos esses arquivos estejam publicados
-em `realkayo/izify`, na branch `main`:
 
 ```powershell
 irm https://raw.githubusercontent.com/realkayo/izify/main/install.ps1 | iex
-```
-
-## Testar e desinstalar
-
-Os testes usam fixtures e nao precisam executar o Spotify real:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\release.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\installer.ps1
 ```
 
 Para desinstalar uma instalacao existente: `izify uninstall`.
